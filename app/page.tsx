@@ -1,35 +1,35 @@
-import { supabase } from "@/lib/supabase";
+import { AppHeader } from "@/components/layout/app-header";
+import { PageContainer } from "@/components/layout/page-container";
+import { AdministrativeSelector } from "@/components/geography/administrative-selector";
+import { getStates } from "@/lib/repositories/states";
 
-export default async function Home() {
-  const { data: parties, error } = await supabase
-    .from("political_parties")
-    .select("*");
 
-  if (error) {
-    console.error("Database error:", error.message);
-  }
+export default async function HomePage() {
+  // Fetch states directly from the database on the server
+ const states = await getStates();
 
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold mb-6">
-        Osun Election Monitor
-      </h1>
+    <>
+      <AppHeader />
 
-      <h2 className="text-xl mb-4 text-green-700 font-semibold">
-        Political Parties
-      </h2>
+      <PageContainer>
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold">
+              Election Geography
+            </h2>
 
-      <ul className="space-y-2 max-w-md">
-        {parties?.map((party: any) => (
-          <li
-            key={party.id}
-            className="border p-3 rounded-lg shadow-sm bg-white flex justify-between items-center"
-          >
-            <span className="font-bold text-green-800">{party.abbreviation}</span>
-            <span className="text-gray-600 text-sm">{party.name}</span>
-          </li>
-        ))}
-      </ul>
-    </main>
+            <p className="text-muted-foreground">
+              Select a State, Local Government Area, Ward and Polling Unit.
+            </p>
+          </div>
+          
+<AdministrativeSelector
+  states={states ?? []}
+/>
+
+        </section>
+      </PageContainer>
+    </>
   );
 }
