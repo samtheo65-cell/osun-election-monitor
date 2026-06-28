@@ -1,6 +1,6 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { PageContainer } from "@/components/layout/page-container";
-import { AdministrativeSelector } from "@/components/geography/administrative-selector";
+import { GeographyWorkspace } from "@/components/geography/geography-workspace";
 import { getStates } from "@/lib/repositories/states";
 
 
@@ -24,8 +24,8 @@ export default async function HomePage() {
             </p>
           </div>
           
-<AdministrativeSelector
-  states={states ?? []}
+<GeographyWorkspace
+  states={states}
 />
 
         </section>

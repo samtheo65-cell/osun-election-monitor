@@ -18,13 +18,19 @@ interface State {
   code: string;
 }
 
-interface AdministrativeSelectorProps {
+  interface AdministrativeSelectorProps {
   states: State[];
+  selectedState: string;
+  onStateChange: (value: string) => void;
 }
 
-export function AdministrativeSelector({ states }: AdministrativeSelectorProps) {
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [lgas, setLgas] = useState<{ name: string }[]>([]);
+export function AdministrativeSelector({
+  states,
+  selectedState,
+  onStateChange,
+}: AdministrativeSelectorProps) {
+
+   const [lgas, setLgas] = useState<{ name: string }[]>([]);
   const [loadingLgas, setLoadingLgas] = useState(false);
   
 const [selectedLga, setSelectedLga] = useState("");
@@ -111,7 +117,8 @@ useEffect(() => {
       {/* State Selector */}
       <div className="max-w-md space-y-2">
         <label className="text-sm font-medium">State</label>
-        <Select value={selectedState} onValueChange={setSelectedState}>
+        <Select value={selectedState} onValueChange={onStateChange}
+>
           <SelectTrigger>
             <SelectValue placeholder="Select State" />
           </SelectTrigger>

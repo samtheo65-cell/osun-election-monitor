@@ -1,20 +1,15 @@
 import { supabase } from "@/lib/supabase";
-import { getStateByName } from "@/lib/repositories/states";
 
-export async function getLgasByState(stateName: string) {
-  // Get the state ID
-  const state = await getStateByName(stateName);
-
-  // Get LGAs
-  const { data: lgas, error: lgaError } = await supabase
+export async function getLgasByState(stateId: string) {
+  const { data, error } = await supabase
     .from("lgas")
-    .select("name")
-    .eq("state_id", state.id)
+    .select("id, name")
+    .eq("state_id", stateId)
     .order("name");
 
-  if (lgaError) {
-    throw lgaError;
+  if (error) {
+    throw error;
   }
 
-  return lgas ?? [];
+  return data ?? [];
 }
