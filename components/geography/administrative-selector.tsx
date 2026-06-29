@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getLgasByState } from "@/lib/repositories/lgas";
-import { getWardsByLga } from "@/lib/repositories/wards";
-import { getPollingUnitsByWard } from "@/lib/repositories/polling-units";
 import {
   Select,
   SelectContent,
@@ -11,120 +8,133 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getLgasByState } from "@/lib/repositories/lgas";
+import { getWardsByLga } from "@/lib/repositories/wards";
+import { getPollingUnitsByWard } from "@/lib/repositories/polling-units";
+import type { GeographySelection, GeographyOption } from "@/lib/types";
 
-interface State {
-  id: string;
-  name: string;
-  code: string;
-}
-
-  interface AdministrativeSelectorProps {
-  states: State[];
-  selectedState: string;
-  onStateChange: (value: string) => void;
+interface AdministrativeSelectorProps {
+  states: GeographyOption[];
+  selection: GeographySelection;
+  onSelectionChange: (selection: GeographySelection) => void;
 }
 
 export function AdministrativeSelector({
   states,
-  selectedState,
-  onStateChange,
+  selection,
+  onSelectionChange,
 }: AdministrativeSelectorProps) {
+  const [lgas, setLgas] = useState<GeographyOption[]>([]);
+  const [wards, setWards] = useState<GeographyOption[]>([]);
+  const [pollingUnits, setPollingUnits] = useState<GeographyOption[]>([]);
 
-   const [lgas, setLgas] = useState<{ name: string }[]>([]);
   const [loadingLgas, setLoadingLgas] = useState(false);
-  
-const [selectedLga, setSelectedLga] = useState("");
-const [wards, setWards] = useState<{ name: string }[]>([]);
-const [loadingWards, setLoadingWards] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const [loadingPollingUnits, setLoadingPollingUnits] = useState(false);
 
-const [selectedWard, setSelectedWard] = useState("");
-const [pollingUnits, setPollingUnits] = useState<{ name: string }[]>([]);
-const [loadingPollingUnits, setLoadingPollingUnits] = useState(false);
-
-useEffect(() => {
-  if (!selectedState) {
-    setLgas([]);
-    return;
-  }
-
-  const fetchLgas = async () => {
-    setLoadingLgas(true);
-
-    try {
-      const lgas = await getLgasByState(selectedState);
-      setLgas(lgas);
-    } catch (err) {
-      console.error("Failed to fetch LGAs:", err);
+  // ─── 1. LOAD LGAs ─────────────────────────────────────
+  useEffect(() => {
+    if (!selection.stateId) {
       setLgas([]);
-    } finally {
-      setLoadingLgas(false);
+      return;
     }
-  };
 
-  fetchLgas();
-}, [selectedState]);
+    const fetchLgas = async () => {
+      setLoadingLgas(true);
+      try {
+        const data = await getLgasByState(selection.stateId);
+        setLgas(data);
+      } catch (error) {
+        console.error("Failed to fetch LGAs:", error);
+        setLgas([]);
+      } finally {
+        setLoadingLgas(false);
+      }
+    };
 
-useEffect(() => {
-  if (!selectedLga) {
-    setWards([]);
-    return;
-  }
+    fetchLgas();
+  }, [selection.stateId]);
 
-  const fetchWards = async () => {
-    setLoadingWards(true);
-
-    try {
-      const wards = await getWardsByLga(selectedLga);
-      setWards(wards);
-    } catch (err) {
-      console.error("Failed to fetch Wards:", err);
+  // ─── 2. LOAD WARDS ────────────────────────────────────
+  useEffect(() => {
+    if (!selection.lgaId) {
       setWards([]);
-    } finally {
-      setLoadingWards(false);
+      return;
     }
-  };
 
-  fetchWards();
-}, [selectedLga]);
+    const fetchWards = async () => {
+      setLoadingWards(true);
+      try {
+        const data = await getWardsByLga(selection.lgaId);
+        setWards(data);
+      } catch (error) {
+        console.error("Failed to fetch Wards:", error);
+        setWards([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
 
-useEffect(() => {
-  if (!selectedWard) {
-    setPollingUnits([]);
-    return;
-  }
+    fetchWards();
+  }, [selection.lgaId]);
 
-  const fetchPollingUnits = async () => {
-    setLoadingPollingUnits(true);
-
-    try {
-      const pollingUnits = await getPollingUnitsByWard(selectedWard);
-      setPollingUnits(pollingUnits);
-    } catch (err) {
-      console.error("Failed to fetch Polling Units:", err);
+  // ─── 3. LOAD POLLING UNITS ────────────────────────────
+  useEffect(() => {
+    if (!selection.wardId) {
       setPollingUnits([]);
-    } finally {
-      setLoadingPollingUnits(false);
+      return;
     }
+
+    const fetchPollingUnits = async () => {
+      setLoadingPollingUnits(true);
+      try {
+        const data = await getPollingUnitsByWard(selection.wardId);
+        setPollingUnits(data);
+      } catch (error) {
+        console.error("Failed to fetch Polling Units:", error);
+        setPollingUnits([]);
+      } finally {
+        setLoadingPollingUnits(false);
+      }
+    };
+
+    fetchPollingUnits();
+  }, [selection.wardId]);
+
+  // ─── HANDLERS ─────────────────────────────────────────
+
+  const handleStateChange = (stateId: string) => {
+    onSelectionChange({ stateId, lgaId: "", wardId: "", pollingUnitId: "" });
   };
 
-  fetchPollingUnits();
-}, [selectedWard]);
+  const handleLgaChange = (lgaId: string) => {
+    onSelectionChange({ ...selection, lgaId, wardId: "", pollingUnitId: "" });
+  };
+
+  const handleWardChange = (wardId: string) => {
+    onSelectionChange({ ...selection, wardId, pollingUnitId: "" });
+  };
+
+  const handlePollingUnitChange = (pollingUnitId: string) => {
+    onSelectionChange({ ...selection, pollingUnitId });
+  };
+
+  // ─── UI ───────────────────────────────────────────────
 
   return (
     <section className="space-y-6">
       <h3 className="text-lg font-semibold">Administrative Geography</h3>
 
-      {/* State Selector */}
+      {/* STATE */}
       <div className="max-w-md space-y-2">
-        <label className="text-sm font-medium">State</label>
-        <Select value={selectedState} onValueChange={onStateChange}
->
-          <SelectTrigger>
+        <label htmlFor="state" className="text-sm font-medium">State</label>
+        <Select value={selection.stateId} onValueChange={handleStateChange}>
+          <SelectTrigger id="state">
             <SelectValue placeholder="Select State" />
           </SelectTrigger>
           <SelectContent>
             {states.map((state) => (
-              <SelectItem key={state.name} value={state.name}>
+              <SelectItem key={state.id} value={state.id}>
                 {state.name}
               </SelectItem>
             ))}
@@ -132,20 +142,20 @@ useEffect(() => {
         </Select>
       </div>
 
-      {/* LGA Selector */}
+      {/* LGA */}
       <div className="max-w-md space-y-2">
-        <label className="text-sm font-medium">Local Government Area</label>
+        <label htmlFor="lga" className="text-sm font-medium">Local Government Area</label>
         <Select
-  value={selectedLga}
-  onValueChange={setSelectedLga}
-  disabled={lgas.length === 0 || loadingLgas}
->
-          <SelectTrigger>
+          value={selection.lgaId}
+          onValueChange={handleLgaChange}
+          disabled={lgas.length === 0 || loadingLgas}
+        >
+          <SelectTrigger id="lga">
             <SelectValue
               placeholder={
                 loadingLgas
                   ? "Loading LGAs..."
-                  : selectedState
+                  : selection.stateId
                   ? "Select LGA"
                   : "Select State first"
               }
@@ -153,91 +163,71 @@ useEffect(() => {
           </SelectTrigger>
           <SelectContent>
             {lgas.map((lga) => (
-              <SelectItem key={lga.name} value={lga.name}>
+              <SelectItem key={lga.id} value={lga.id}>
                 {lga.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-            </div>
-
-      {/* Ward Selector */}
-      <div className="max-w-md space-y-2">
-        <label
-          htmlFor="ward"
-          className="text-sm font-medium"
-        >
-          Ward
-        </label>
-
-        <Select
-     value={selectedWard}
-  onValueChange={setSelectedWard}
-  disabled={wards.length === 0 || loadingWards} >
-          <SelectTrigger id="ward">
-            <SelectValue
-              placeholder={
-                loadingWards
-                  ? "Loading Wards..."
-                  : selectedLga
-                    ? "Select Ward"
-                    : "Select LGA first"
-              }
-            />
-          </SelectTrigger>
-
-          <SelectContent>
-            {wards.map((ward) => (
-              <SelectItem
-                key={ward.name}
-                value={ward.name}
-              >
-                {ward.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-            </div>
-
-      {/* Polling Unit Selector */}
-      <div className="max-w-md space-y-2">
-        <label
-          htmlFor="polling-unit"
-          className="text-sm font-medium"
-        >
-          Polling Unit
-        </label>
-
-        <Select
-          disabled={
-            pollingUnits.length === 0 || loadingPollingUnits
-          }
-        >
-          <SelectTrigger id="polling-unit">
-            <SelectValue
-              placeholder={
-                loadingPollingUnits
-                  ? "Loading Polling Units..."
-                  : selectedWard
-                    ? "Select Polling Unit"
-                    : "Select Ward first"
-              }
-            />
-          </SelectTrigger>
-
-          <SelectContent>
-            {pollingUnits.map((pollingUnit) => (
-              <SelectItem
-                key={pollingUnit.name}
-                value={pollingUnit.name}
-              >
-                {pollingUnit.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* WARD */}
+      <div className="max-w-md space-y-2">
+        <label htmlFor="ward" className="text-sm font-medium">Ward</label>
+        <Select
+          value={selection.wardId}
+          onValueChange={handleWardChange}
+          disabled={wards.length === 0 || loadingWards}
+        >
+          <SelectTrigger id="ward">
+            <SelectValue
+              placeholder={
+                loadingWards
+                  ? "Loading Wards..."
+                  : selection.lgaId
+                  ? "Select Ward"
+                  : "Select LGA first"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {wards.map((ward) => (
+              <SelectItem key={ward.id} value={ward.id}>
+                {ward.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* POLLING UNIT */}
+      <div className="max-w-md space-y-2">
+        <label htmlFor="polling-unit" className="text-sm font-medium">Polling Unit</label>
+        <Select
+          value={selection.pollingUnitId}
+          onValueChange={handlePollingUnitChange}
+          disabled={pollingUnits.length === 0 || loadingPollingUnits}
+        >
+          <SelectTrigger id="polling-unit">
+            <SelectValue
+              placeholder={
+                loadingPollingUnits
+                  ? "Loading Polling Units..."
+                  : selection.wardId
+                  ? "Select Polling Unit"
+                  : "Select Ward first"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {pollingUnits.map((unit) => (
+              <SelectItem key={unit.id} value={unit.id}>
+                {unit.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </section>
   );
 }

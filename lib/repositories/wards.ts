@@ -1,27 +1,16 @@
 import { supabase } from "@/lib/supabase";
+import { GeographyOption } from "@/lib/types";
 
-export async function getWardsByLga(lgaName: string) {
-  // Find the LGA
-  const { data: lga, error: lgaError } = await supabase
-    .from("lgas")
-    .select("id")
-    .eq("name", lgaName.toUpperCase())
-    .single();
-
-  if (lgaError || !lga) {
-    throw new Error("LGA not found.");
-  }
-
-  // Get wards
-  const { data: wards, error: wardError } = await supabase
+export async function getWardsByLga(
+  lgaId: string
+): Promise<GeographyOption[]> {
+  const { data, error } = await supabase
     .from("wards")
-    .select("name")
-    .eq("lga_id", lga.id)
+    .select("id, name")
+    .eq("lga_id", lgaId)
     .order("name");
 
-  if (wardError) {
-    throw wardError;
-  }
+  if (error) throw error;
 
-  return wards ?? [];
+  return data ?? [];
 }

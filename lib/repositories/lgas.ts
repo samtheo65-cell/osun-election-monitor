@@ -1,18 +1,16 @@
 import { supabase } from "@/lib/supabase";
-import { getStateByName } from "@/lib/repositories/states";
+import { GeographyOption } from "@/lib/types";
 
-export async function getLgasByState(stateName: string) {
-  const state = await getStateByName(stateName);
-
-  const { data: lgas, error } = await supabase
+export async function getLgasByState(
+  stateId: string
+): Promise<GeographyOption[]> {
+  const { data, error } = await supabase
     .from("lgas")
-    .select("name")
-    .eq("state_id", state.id)
+    .select("id, name")
+    .eq("state_id", stateId)
     .order("name");
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  return lgas ?? [];
+  return data ?? [];
 }
