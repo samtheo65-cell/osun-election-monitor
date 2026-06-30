@@ -1,5 +1,12 @@
 import { supabase } from "@/lib/supabase";
-import { ElectoralGeography } from "@/lib/types";
+import type { ElectoralGeography } from "@/lib/types";
+
+type NameHolder = { name: string };
+
+function firstOrEmpty<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export async function getElectoralGeography(
   lgaId: string,
@@ -11,15 +18,22 @@ export async function getElectoralGeography(
     stateConstituency: "",
   };
 
-  // 1. Get Federal Constituency and Senatorial District
+  // 1) Federal Constituency + Senatorial District (via LGA)
+  type FederalConstituencyNested = {
+    name: string;
+    senatorial_districts?: NameHolder | NameHolder[] | null;
+  };
+
+  type FederalResponse = {
+    federal_constituencies?: FederalConstituencyNested | FederalConstituencyNested[] | null;
+  };
+
   const { data: federalData, error: federalError } = await supabase
     .from("lga_federal_constituencies")
     .select(`
-      federal_constituency_id,
-      federal_constituencies!inner (
+      federal_constituencies (
         name,
-        senatorial_district_id,
-        senatorial_districts!inner (
+        senatorial_districts (
           name
         )
       )
@@ -29,23 +43,30 @@ export async function getElectoralGeography(
 
   if (federalError) {
     console.error("Federal constituency error:", federalError);
+    return result;
   }
 
-  if (federalData?.federal_constituencies) {
-    const fc = federalData.federal_constituencies as any;
+  const fc = firstOrEmpty(
+    (federalData as FederalResponse | null | undefined)?.federal_constituencies
+  );
+
+  if (fc) {
     result.federalConstituency = fc.name || "";
-    
-    if (fc.senatorial_districts) {
-      result.senatorialDistrict = fc.senatorial_districts.name || "";
-    }
+    const sd = firstOrEmpty(fc.senatorial_districts);
+    result.senatorialDistrict = sd?.name ?? "";
   }
 
-  // 2. Get State Constituency
+  // 2) State Constituency (via Ward)
+  type StateConstituencyNested = { name: string };
+
+  type StateResponse = {
+    state_constituencies?: StateConstituencyNested | StateConstituencyNested[] | null;
+  };
+
   const { data: stateData, error: stateError } = await supabase
     .from("ward_state_constituencies")
     .select(`
-      state_constituency_id,
-      state_constituencies!inner (
+      state_constituencies (
         name
       )
     `)
@@ -54,10 +75,14 @@ export async function getElectoralGeography(
 
   if (stateError) {
     console.error("State constituency error:", stateError);
+    return result;
   }
 
-  if (stateData?.state_constituencies) {
-    const sc = stateData.state_constituencies as any;
+  const sc = firstOrEmpty(
+    (stateData as StateResponse | null | undefined)?.state_constituencies
+  );
+
+  if (sc) {
     result.stateConstituency = sc.name || "";
   }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { AdministrativeSelector } from "./administrative-selector";
 import { ElectoralSummary } from "./electoral-summary";
+import { PollingUnitProfile } from "@/components/polling-unit/polling-unit-profile";
 
 import {
   GeographySelection,
@@ -12,6 +13,11 @@ import {
 } from "@/lib/types";
 
 import { getElectoralGeography } from "@/lib/repositories/electoral";
+
+import {
+  getPollingUnitProfile,
+  type PollingUnitProfileData,
+} from "@/lib/repositories/polling-unit-profile";
 
 interface GeographyWorkspaceProps {
   states: GeographyOption[];
@@ -34,6 +40,10 @@ export function GeographyWorkspace({
       stateConstituency: "",
     });
 
+  const [profile, setProfile] =
+    useState<PollingUnitProfileData | null>(null);
+
+  // Electoral Summary
   useEffect(() => {
     if (!selection.lgaId || !selection.wardId) {
       setElectoral({
@@ -41,7 +51,6 @@ export function GeographyWorkspace({
         federalConstituency: "",
         stateConstituency: "",
       });
-
       return;
     }
 
@@ -64,17 +73,45 @@ export function GeographyWorkspace({
     loadElectoral();
   }, [selection.lgaId, selection.wardId]);
 
-  return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <AdministrativeSelector
-        states={states}
-        selection={selection}
-        onSelectionChange={setSelection}
-      />
+  // Polling Unit Profile
+  useEffect(() => {
+    if (!selection.pollingUnitId) {
+      setProfile(null);
+      return;
+    }
 
-      <ElectoralSummary
-        electoral={electoral}
-      />
+    const loadProfile = async () => {
+      try {
+        const data = await getPollingUnitProfile(
+          selection.pollingUnitId
+        );
+
+        setProfile(data);
+      } catch (error) {
+        console.error(
+          "Failed to load polling unit profile",
+          error
+        );
+        setProfile(null);
+      }
+    };
+
+    loadProfile();
+  }, [selection.pollingUnitId]);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-8 lg:grid-cols-2">
+        <AdministrativeSelector
+          states={states}
+          selection={selection}
+          onSelectionChange={setSelection}
+        />
+
+        <ElectoralSummary electoral={electoral} />
+      </div>
+
+      <PollingUnitProfile profile={profile} />
     </div>
   );
 }

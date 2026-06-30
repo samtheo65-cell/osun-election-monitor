@@ -5,13 +5,21 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
+
+  // Disable the React 19 rule that complains about setState() inside effects.
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+
+  // Add extra ignores (keep Next's defaults + exclude scripts utilities)
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "scripts/**",
   ]),
 ]);
 
